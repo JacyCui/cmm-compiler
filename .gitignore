@@ -1,0 +1,6 @@
+*.o
+*.output
+.vscode/
+lex.yy.c
+syntax.tab.c
+syntax.tab.h
