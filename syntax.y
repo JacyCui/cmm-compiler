@@ -71,7 +71,7 @@ ExtDef: Specifier ExtDecList SEMI // for global variables
     }
     | Specifier SEMI // for structs
     {
-        $$ = make_syntax_node(ExtDef, "ExtDef", @$.first_line, 1);
+        $$ = make_syntax_node(ExtDef, "ExtDef", @$.first_line, 2);
         $$->childs[0] = $1;
         $$->childs[1] = make_lex_node(SEMI, "SEMI", @2.first_line, -1);
     }
