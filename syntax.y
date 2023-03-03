@@ -82,6 +82,7 @@ ExtDef: Specifier ExtDecList SEMI // for global variables
         $$->childs[1] = $2;
         $$->childs[2] = $3;
     }
+    | Specifier error SEMI { $$ = NULL; }
     ;
 // ExtDecList is zero or more VarDec.
 ExtDecList: VarDec
@@ -173,6 +174,8 @@ FunDec: ID LP VarList RP
         $$->childs[1] = make_lex_node(LP, "LP", @2.first_line, -1);
         $$->childs[2] = make_lex_node(RP, "RP", @3.first_line, -1);
     }
+    | ID LP error RP { $$ = NULL; }
+    | error LP VarList RP { $$ = NULL; }
     ;
 VarList: ParamDec COMMA VarList
     {
@@ -205,6 +208,7 @@ CompSt: LC DefList StmtList RC
         $$->childs[2] = $3;
         $$->childs[3] = make_lex_node(RC, "RC", @4.first_line, -1);
     }
+    | error RC { $$ = NULL; }
     ;
 StmtList: %empty { $$ = NULL; }
     | Stmt StmtList
