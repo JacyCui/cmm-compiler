@@ -1,6 +1,8 @@
 #ifndef SYMBOL_H
 #define SYMBOL_H
 
+typedef int sym_t;
+
 typedef struct symtab_t {
     char *symbol;
     int lineno;
@@ -20,7 +22,7 @@ extern symtab_t symtab[];
 extern intconst_t intab[];
 extern floatconst_t floatab[];
 
-int installID(const char *yytext, int yyleng, int yylineno);
+sym_t installID(const char *yytext, int yyleng, int yylineno);
 int installINT(const char *yytext, int yyleng, int yylineno);
 int installFLOAT(const char *yytext, int yyleng, int yylineno);
 

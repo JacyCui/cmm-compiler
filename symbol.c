@@ -2,17 +2,22 @@
 #include <string.h>
 
 #include "symbol.h"
+#include "config.h"
 
-#define MAX_NUM 1024
-
-symtab_t symtab[MAX_NUM];
+symtab_t symtab[MAX_TABLE_LEN];
 static int symtab_size = 0;
-intconst_t intab[MAX_NUM];
+intconst_t intab[MAX_TABLE_LEN];
 static int intab_size = 0;
-floatconst_t floatab[MAX_NUM];
+floatconst_t floatab[MAX_TABLE_LEN];
 static int floatab_size = 0;
 
-int installID(const char *yytext, int yyleng, int yylineno) {
+sym_t installID(const char *yytext, int yyleng, int yylineno) {
+    int i;
+    for (i = 0; i < symtab_size; i++) {
+        if (strcmp(symtab[i].symbol, yytext) == 0) {
+            return i;
+        }
+    }
     symtab[symtab_size].symbol = (char *)malloc(yyleng + 1);
     strcpy(symtab[symtab_size].symbol, yytext);
     symtab[symtab_size].lineno = yylineno;

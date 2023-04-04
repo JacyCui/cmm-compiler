@@ -1,0 +1,12 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define MAX_AST_CHILDNUM 8
+#define MAX_TABLE_LEN 1024
+
+#define MAX_ARRAY_DIMENSION 32
+#define MAX_STRUCT_FIELDNUM 32
+#define MAX_FUNCT_PARAMNUM 32
+
+
+#endif

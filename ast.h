@@ -1,14 +1,14 @@
 #ifndef AST_H
 #define AST_H
 
-#define MAX_NUM 8
+#include "config.h"
 
 typedef struct astnode_t {
     int type;           // ast-node type
     const char *name;   // ast-node name
     int lineno;         // lexeme location
     int tabid;             // symtab, intable or floatable index
-    struct astnode_t *childs[MAX_NUM];
+    struct astnode_t *childs[MAX_AST_CHILDNUM];
     int child_num;
 } astnode_t;
 

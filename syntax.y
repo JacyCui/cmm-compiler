@@ -75,12 +75,19 @@ ExtDef: Specifier ExtDecList SEMI // for global variables
         $$->childs[0] = $1;
         $$->childs[1] = make_lex_node(SEMI, "SEMI", @2.first_line, -1);
     }
-    | Specifier FunDec CompSt // for functions
+    | Specifier FunDec CompSt // for function definitions 
     {
         $$ = make_syntax_node(ExtDef, "ExtDef", @$.first_line, 3);
         $$->childs[0] = $1;
         $$->childs[1] = $2;
         $$->childs[2] = $3;
+    }
+    | Specifier FunDec SEMI // for function declarations
+    {
+        $$ = make_syntax_node(ExtDef, "ExtDef", @$.first_line, 3);
+        $$->childs[0] = $1;
+        $$->childs[1] = $2;
+        $$->childs[2] = make_lex_node(SEMI, "SEMI", @3.first_line, -1);
     }
     | Specifier error SEMI { $$ = NULL; }
     ;
