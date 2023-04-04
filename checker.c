@@ -163,6 +163,11 @@ static func_t processFunDec(type_t ret_type, astnode_t *p, bool is_def) {
     }
     fun = getFunctionByName(id->tabid);
     function = getFunctContent(fun);
+    if (function->definded && is_def) {
+        printf("Error type 4 at Line %d: Redefined function \"%s\".\n",
+            id->lineno, symtab[id->tabid].symbol);
+        return fun;
+    }
     function->definded = function->definded || is_def;
     if (!checkFuncSig(ret_type, p, function)) {
         // 错误类型19:函数的多次声明互相冲突(即函数名一致，但返回类型、形参数量
@@ -176,7 +181,7 @@ static func_t processFunDec(type_t ret_type, astnode_t *p, bool is_def) {
 static type_t processSpecifier(astnode_t *p) {
     astnode_t *p0 = p->childs[0];
     if (p0->type == TYPE) {
-        if (p->tabid == INT) {
+        if (p0->tabid == INT) {
             return getIntType();
         } else {
             return getFloatType();
@@ -188,7 +193,6 @@ static type_t processSpecifier(astnode_t *p) {
     type_t new_type;
     typetable_t *type;
     astnode_t *def_list;
-    astnode_t *def;
     if (p0->child_num == 5) {
         if (tag != NULL) {
             assert(tag->childs[0]->type == ID);
@@ -207,7 +211,7 @@ static type_t processSpecifier(astnode_t *p) {
         def_list = p0->childs[3];
         while (def_list != NULL) {
             processDef(def_list->childs[0], type);
-            def = def->childs[1];
+            def_list = def_list->childs[1];
         }
         return new_type;
     }
@@ -322,7 +326,7 @@ static void processDec(type_t type, astnode_t *p, typetable_t *structure) {
             } else {
                 assert(p->childs[2]->type == Exp);
                 init_type = processExpr(p->childs[2]);
-                if (type != init_type) {
+                if (init_type != -1 && type != init_type) {
                     // 错误类型5: 赋值号两边的表达式类型不匹配
                     printf("Error type 5 at Line %d: Type mismatched for assignment.\n",
                         p->childs[1]->lineno);
@@ -352,7 +356,7 @@ static type_t processArray(astnode_t *p, int dim) {
     type_t index;
     if (p->child_num == 4 && p->childs[1]->type == LB) {
         index = processExpr(p->childs[2]);
-        if (type_table[index].kind != BASIC || type_table[index].basic != INT) {
+        if (type_table[index].kind != BASIC || type_table[index].basic != INT_TYPE) {
             printf("Error type 12 at Line %d: index is not an integer.\n", p->childs[2]->lineno);
         }
         return processArray(p->childs[0], dim + 1);
@@ -362,7 +366,7 @@ static type_t processArray(astnode_t *p, int dim) {
     if (type_table[type].kind == ARRAY && type_table[type].array.dimension == dim) {
         return type_table[type].array.base_type;
     }
-    printf("Error type 10 at Line %d: This is not a proper array.", p->lineno);
+    printf("Error type 10 at Line %d: This is not a proper array.\n", p->lineno);
     return -1;
 }
 
