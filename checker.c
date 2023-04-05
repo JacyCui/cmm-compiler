@@ -55,8 +55,10 @@ static void processExtDef(astnode_t *p) {
     astnode_t *ext_dec_list;
     astnode_t *var_dec;
     if (p->childs[1]->type == ExtDecList) {
+        ext_dec_list = p->childs[1];
         while (ext_dec_list->child_num == 3) {
             var_dec = ext_dec_list->childs[0];
+            assert(var_dec->type == VarDec);
             if (var_dec->childs[0]->type == ID) {
                 processVarDec(type, var_dec->childs[0], NULL, NULL);
             } else {
@@ -66,6 +68,7 @@ static void processExtDef(astnode_t *p) {
         }
         assert(ext_dec_list->child_num == 1);
         var_dec = ext_dec_list->childs[0];
+        assert(var_dec->type == VarDec);
         if (var_dec->childs[0]->type == ID) {
             processVarDec(type, var_dec->childs[0], NULL, NULL);
         } else {
@@ -75,7 +78,7 @@ static void processExtDef(astnode_t *p) {
     }
     bool is_def = p->childs[2]->type == CompSt;
     func_t func = processFunDec(type, p->childs[1], is_def);
-    if (p->childs[2]->type == CompSt) {
+    if (func != -1 && is_def) {
         curFunc = func;
         check(p->childs[2]);
     }
@@ -166,7 +169,7 @@ static func_t processFunDec(type_t ret_type, astnode_t *p, bool is_def) {
     if (function->definded && is_def) {
         printf("Error type 4 at Line %d: Redefined function \"%s\".\n",
             id->lineno, symtab[id->tabid].symbol);
-        return fun;
+        return -1;
     }
     function->definded = function->definded || is_def;
     if (!checkFuncSig(ret_type, p, function)) {
@@ -174,6 +177,7 @@ static func_t processFunDec(type_t ret_type, astnode_t *p, bool is_def) {
         // 或者形参类型不一致)，或者声明与定义之间互相冲突。
         printf("Error type 19 at Line %d: Inconsistent declaration of function \"%s\".\n",
             id->lineno, symtab[id->tabid].symbol);    
+        return -1;
     }
     return fun;
 }
@@ -378,11 +382,14 @@ static type_t checkFuncArgs(astnode_t *p, functable_t *function) {
         }
         return function->ret_type;
     }
+    assert(p->type == Args);
     int i;
     type_t param_type;
+    type_t arg_type;
     for (i = 0; i < function->param_num; i++) {
         param_type = name_table[function->param_list[i]].type;
-        if (param_type != processExpr(p->childs[0])) {
+        arg_type = processExpr(p->childs[0]);
+        if (arg_type != -1 && !checkTypeEqual(type_table + param_type, type_table + arg_type)) {
             printf("Error type 9 at Line %d: Function \"%s\" has wrong arguments.\n",
                 p->lineno, symtab[function->sym].symbol);   
             return function->ret_type;
@@ -390,6 +397,7 @@ static type_t checkFuncArgs(astnode_t *p, functable_t *function) {
         if (p->child_num == 1) {
             break;
         }
+        p = p->childs[2];
     }
     if (p->child_num != 1 || i != function->param_num - 1) {
         printf("Error type 9 at Line %d: Function \"%s\" has wrong arguments.\n",
@@ -503,6 +511,11 @@ static type_t processExpr(astnode_t *p) {
         return -1;
     }
     if (op->type == RELOP) {
+        if ((type1 != -1 && type_table[type1].kind != BASIC) 
+            || (type2 != -1 && type_table[type2].kind != BASIC)) {
+            printf("Error type 7 at Line %d: Type mismatched for operands.\n", op->lineno);
+            return -1;
+        }
         return getIntType();
     }
     if (op->type == AND || op->type == OR) {
