@@ -20,7 +20,7 @@ typedef struct typetable_t {
             int sizes[MAX_ARRAY_DIMENSION]; 
         } array;
         struct {
-            name_t sym;
+            sym_t sym;
             int fieldnum;
             name_t field_names[MAX_STRUCT_FIELDNUM];
         } structure;
