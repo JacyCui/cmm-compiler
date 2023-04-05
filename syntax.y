@@ -274,6 +274,7 @@ Stmt: Exp SEMI
         $$->childs[3] = make_lex_node(RP, "RP", @4.first_line, -1);
         $$->childs[4] = $5;
     }
+    | WHILE LP error RP Stmt { $$ = NULL; }
     | error SEMI { $$ = NULL; }
     ;
 

@@ -418,8 +418,26 @@ static type_t processExpr(astnode_t *p) {
         }
         return -1;
     }
-    if (atom->type == LP || atom->type == MINUS || atom->type == NOT) {
+    if (atom->type == LP) {
         return processExpr(p->childs[1]);
+    }
+    if (atom->type == MINUS) {
+        type = processExpr(p->childs[1]);
+        if (type == getIntType() || type == getFloatType()) {
+            return type;
+        } else {
+            printf("Error type 7 at Line %d: Type mismatched for operands.\n", atom->lineno);
+            return -1;
+        }
+    }
+    if (atom->type == NOT) {
+        type = processExpr(p->childs[1]);
+        if (type == getIntType()) {
+            return type;
+        } else {
+            printf("Error type 7 at Line %d: Type mismatched for operands.\n", atom->lineno);
+            return getIntType();
+        }
     }
     func_t fun;
     if (atom->type == ID) {
@@ -463,26 +481,38 @@ static type_t processExpr(astnode_t *p) {
         return processArray(p, 0);
     }
     assert(p->child_num == 3);
+    astnode_t *op = p->childs[1];
     type_t type1 = processExpr(p->childs[0]);
     type_t type2 = processExpr(p->childs[2]);
-    if (p->childs[1]->type == ASSIGNOP) {
+    if (op->type == ASSIGNOP) {
         if ((atom->child_num == 1 && atom->childs[0]->type == ID) 
             || (atom->child_num == 4 && atom->childs[1]->type == LB)
             || (atom->child_num == 3 && atom->childs[1]->type == DOT)) {
             if (type1 == -1 || type2 == -1 || type1 == type2) {
                 return type1 != -1 ? type1 : type2;
             }
-            printf("Error type 5 at Line %d: Type mismatched for assignment.\n", p->childs[1]->lineno);
+            printf("Error type 5 at Line %d: Type mismatched for assignment.\n", op->lineno);
             return -1;
         }
         printf("Error type 6 at Line %d: The left-hand side of an assignment must be a variable.\n",
-            p->childs[0]->lineno);
+            op->lineno);
         return -1;
     }
-    if (type1 == -1 || type2 == -1 || type1 == type2) {
+    if (type1 != -1 && type2 != -1 && type1 != type2) {
+        printf("Error type 7 at Line %d: Type mismatched for operands.\n", op->lineno);
+        return -1;
+    }
+    if (op->type == RELOP) {
+        return getIntType();
+    }
+    if (op->type == AND || op->type == OR) {
+        if ((type1 != -1 && type1 != getIntType()) 
+            || (type2 != -1 && type2 != getIntType())) {
+            printf("Error type 7 at Line %d: Type mismatched for operands.\n", op->lineno);
+            return -1;
+        }
         return type1 != -1 ? type1 : type2;
     }
-    printf("Error type 7 at Line %d: Type mismatched for operands.\n", p->childs[1]->lineno);
-    return -1;
+    return type1 != -1 ? type1 : type2;
 }
 
