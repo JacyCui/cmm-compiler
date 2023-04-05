@@ -33,7 +33,6 @@ type_t addNewEmptyStructureType(sym_t nameSym);
 type_t getStructureTypeByName(sym_t nameSym);
 type_t addNewEmptyArrayType(type_t type);
 
-typetable_t *getTypeContent(type_t i);
 bool checkTypeEqual(typetable_t *t1, typetable_t *t2);
 
 typedef struct nametable_t {
@@ -46,7 +45,7 @@ name_t addVarName(sym_t sym, type_t type);
 name_t addFieldName(sym_t sym, type_t type);
 name_t getVarName(sym_t sym);
 name_t getFieldName(sym_t sym);
-nametable_t *getNameContent(int i);
+
 
 typedef struct functable_t {
     sym_t sym;
@@ -58,11 +57,11 @@ typedef struct functable_t {
 
 func_t addNewEmptyFunction(type_t ret_type, sym_t sym);
 func_t getFunctionByName(sym_t sym);
-functable_t *getFunctContent(func_t i);
+
 void checkFunctionTable();
 
-extern typetable_t type_table[];
-extern nametable_t name_table[];
-extern functable_t func_table[];
+extern typetable_t typetab[];
+extern nametable_t nametab[];
+extern functable_t functab[];
 
 #endif
