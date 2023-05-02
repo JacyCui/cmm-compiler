@@ -3,6 +3,9 @@
 
 typedef int sym_t;
 
+#define SYMBOL_READ 0
+#define SYMBOL_WRITE 1
+
 typedef struct symtab_t {
     char *symbol;
     int lineno;

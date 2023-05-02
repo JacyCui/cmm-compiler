@@ -28,6 +28,12 @@ int main(int argc, char **argv) {
         check(root);
         checkFunctionTable();
     }
+    
+    // if (argc <= 2) {
+    //     return 1;
+    // }
+
+    //f = fopen(argv[2], "w");
 
     freeSymtab();
     free_ast(root);

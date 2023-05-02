@@ -4,8 +4,12 @@
 #include "symbol.h"
 #include "config.h"
 
-symtab_t symtab[MAX_TABLE_LEN];
-static int symtab_size = 0;
+symtab_t symtab[MAX_TABLE_LEN] = {
+    [SYMBOL_READ] = { .symbol = "read", .lineno = -1},
+    [SYMBOL_WRITE] = { .symbol = "write", .lineno = -1}
+};
+static int symtab_size = 2;
+
 intconst_t intab[MAX_TABLE_LEN];
 static int intab_size = 0;
 floatconst_t floatab[MAX_TABLE_LEN];
@@ -15,6 +19,9 @@ sym_t installID(const char *yytext, int yyleng, int yylineno) {
     int i;
     for (i = 0; i < symtab_size; i++) {
         if (strcmp(symtab[i].symbol, yytext) == 0) {
+            if (symtab[i].lineno == -1) {
+                symtab[i].lineno = yylineno;
+            }
             return i;
         }
     }
@@ -38,7 +45,7 @@ int installFLOAT(const char *yytext, int yyleng, int yylineno) {
 
 void freeSymtab() {
     int i;
-    for (i = 0; i < symtab_size; i++) {
+    for (i = 2; i < symtab_size; i++) {
         free(symtab[i].symbol);
     }
 }

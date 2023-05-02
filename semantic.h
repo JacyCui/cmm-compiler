@@ -46,7 +46,6 @@ name_t addFieldName(sym_t sym, type_t type);
 name_t getVarName(sym_t sym);
 name_t getFieldName(sym_t sym);
 
-
 typedef struct functable_t {
     sym_t sym;
     type_t ret_type;

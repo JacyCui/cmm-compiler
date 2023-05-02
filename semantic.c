@@ -4,16 +4,22 @@
 #include "semantic.h"
 
 typetable_t typetab[MAX_TABLE_LEN] = {
-    [0] = { .kind = BASIC, .basic = INT_TYPE},
-    [1] = { .kind = BASIC, .basic = FLOAT_TYPE}
+    [0] = { .kind = BASIC, .basic = INT_TYPE },
+    [1] = { .kind = BASIC, .basic = FLOAT_TYPE }
 };
 static int typetab_size = 2;
 
-nametable_t nametab[MAX_TABLE_LEN];
-int name_table_size = 0;
+nametable_t nametab[MAX_TABLE_LEN] = {
+    [0] = { .kind = VAR_NAME, .sym = -1, .type = 0 }
+};
+int name_table_size = 1;
 
-functable_t functab[MAX_TABLE_LEN];
-int func_table_size = 0;
+functable_t functab[MAX_TABLE_LEN] = {
+    [0] = { .sym = SYMBOL_READ, .param_num = 0, .ret_type = 0, .definded = true },
+    [1] = { .sym = SYMBOL_WRITE, .param_num = 1, .ret_type = 0, 
+            .definded = true, .param_list = {0} }
+};
+int func_table_size = 2;
 
 type_t getIntType() {
     return 0;
