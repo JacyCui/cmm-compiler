@@ -39,13 +39,20 @@ int main(int argc, char **argv) {
     }
 
     genIR(root);
-
-    dumpIR(stdout);
     
-    // if (argc >= 2) {
-    //     f = fopen(argv[2], "w");
-    // }
+    if (argc >= 3) {
+        f = fopen(argv[2], "w");
+    } else {
+        return 1;
+    }
+    if (!f) {
+        printf("No such file \"%s\"!\n", argv[1]);
+        return 1;
+    }
 
+    dumpIR(f);
+
+    fclose(f);
     freeSymtab();
     free_ast(root);
     return 0;

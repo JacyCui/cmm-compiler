@@ -7,6 +7,8 @@
 #include "ir.h"
 #include "irgen.h"
 
+static bool isDec[MAX_TABLE_LEN * 2] = {false};
+
 static void translateFunDec(astnode_t *p) {
     assert(p->type == FunDec);
     astnode_t *id = p->childs[0];
@@ -14,13 +16,51 @@ static void translateFunDec(astnode_t *p) {
     func_t func = getFunctionByName(funcName);
     assert(func != -1);
     assert(functab[func].definded);
-    IR_FUNCTION(funcName); // Function funcName :
+    IR_FUNCTION(funcName);
     operand_t param;
     int i;
     for (i = 0; i < functab[func].param_num; i++) {
         param = getOrCreateVarByName(functab[func].param_list[i]);
-        IR_PARAM(param); // PARAM param
+        IR_PARAM(param);
     }
+}
+
+static void translateExp(astnode_t *p, operand_t place);
+
+static void translateArrayAccess(astnode_t *p, operand_t place) {
+    assert(p->type == Exp);
+    assert(p->child_num == 4);
+    assert(p->childs[1]->type == LB);
+
+    astnode_t *indexes[MAX_ARRAY_DIMENSION];
+    int dimension = 0;
+    while (p->child_num == 4) {
+        indexes[dimension++] = p->childs[2];
+        p = p->childs[0];
+    }
+    assert(p->child_num == 1);
+    assert(p->childs[0]->type == ID);
+    name_t array = getVarName(p->childs[0]->tabid);
+    typetable_t *type = typetab + nametab[array].type;
+    assert(type->kind == ARRAY);
+    assert(type->array.dimension == dimension);
+
+    operand_t offset = newTemp();
+    IR_ASSIGN(offset, getOrCreateConstant(0));
+
+    operand_t t1 = newTemp();
+    int size = 1;
+    int i;
+    for (i = 0; i < dimension; i++) {
+        translateExp(indexes[i], t1);
+        IR_MUL(t1, t1, getOrCreateConstant(size * 4));
+        IR_ADD(offset, offset, t1);
+        size *= type->array.sizes[i];
+    }
+
+    operand_t baseAddr = newTemp();
+    translateExp(p, baseAddr);
+    IR_ADD(place, baseAddr, offset);
 }
 
 static void translateCond(astnode_t *p, label_t trueLabel, label_t falseLabel);
@@ -39,26 +79,43 @@ static void translateExp(astnode_t *p, operand_t place) {
     operand_t variable;
     if (p->child_num == 1 && p->childs[0]->type == ID) {
         variable = getOrCreateVarByName(getVarName(p->childs[0]->tabid));
+        if (isDec[variable]) {
+            IR_GET_ADDR(place, variable);
+            return;
+        }
         IR_ASSIGN(place, variable);
         return;
     }
 
-    operand_t t1;
+    operand_t t1, t2;
     astnode_t* exp1, *exp2;
     if (p->child_num == 3 && p->childs[1]->type == ASSIGNOP) {
         exp1 = p->childs[0];
         exp2 = p->childs[2];
         assert(exp1->type == Exp);
-        assert(exp1->child_num == 1 && exp1->childs[0]->type == ID);
-        variable = getOrCreateVarByName(getVarName(exp1->childs[0]->tabid));
-        t1 = newTemp();
-        translateExp(exp2, t1);
-        IR_ASSIGN(variable, t1);
-        IR_ASSIGN(place, variable);
-        return;
+
+        if (exp1->child_num == 1 && exp1->childs[0]->type == ID) {
+            variable = getOrCreateVarByName(getVarName(exp1->childs[0]->tabid));
+            t1 = newTemp();
+            translateExp(exp2, t1);
+            IR_ASSIGN(variable, t1);
+            IR_ASSIGN(place, variable);
+            return;
+        }
+
+        if (exp1->child_num == 4 && exp1->childs[1]->type == LB) {
+            t1 = newTemp();
+            t2 = newTemp();
+            translateArrayAccess(exp1, t1);
+            translateExp(exp2, t2);
+            IR_STORE(t1, t2);
+            return;
+        }
+
+        printf("Cannot translate: Code contains variables or parameters of structure type.\n");
+        exit(0);
     }
 
-    operand_t t2;
     if (p->child_num == 3 && p->childs[1]->type == PLUS) {
         exp1 = p->childs[0];
         exp2 = p->childs[2];
@@ -167,7 +224,12 @@ static void translateExp(astnode_t *p, operand_t place) {
         return;
     }
     
-    // TODO: process array indexing
+    if (p->child_num == 4 && p->childs[1]->type == LB) {
+        t1 = newTemp();
+        translateArrayAccess(p, t1);
+        IR_LOAD(place, t1);
+        return;
+    }
 
     printf("Cannot translate: Code contains variables or parameters of structure or float type.\n");
     exit(0);
@@ -270,6 +332,7 @@ static void translateDec(astnode_t *p) {
             size *= varType->array.sizes[i];
         }
         IR_DEC(place, size * 4);
+        isDec[place] = true;
     }
 
     if (p->child_num == 1) {
