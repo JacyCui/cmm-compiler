@@ -1,7 +1,10 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
+#include "ast.h"
 #include "syntax.tab.h"
+#include "ir.h"
 #include "irgen.h"
 
 static void translateFunDec(astnode_t *p) {
@@ -21,6 +24,7 @@ static void translateFunDec(astnode_t *p) {
 }
 
 static void translateCond(astnode_t *p, label_t trueLabel, label_t falseLabel);
+static void translateArgs(astnode_t *p, operand_t argList[], int* argListSize);
 
 static void translateExp(astnode_t *p, operand_t place) {
     assert(p->type == Exp);
@@ -34,7 +38,7 @@ static void translateExp(astnode_t *p, operand_t place) {
 
     operand_t variable;
     if (p->child_num == 1 && p->childs[0]->type == ID) {
-        variable = getOrCreateVarByName(p->childs[0]->tabid);
+        variable = getOrCreateVarByName(getVarName(p->childs[0]->tabid));
         IR_ASSIGN(place, variable);
         return;
     }
@@ -132,21 +136,114 @@ static void translateExp(astnode_t *p, operand_t place) {
         return;
     }
 
-    // TODO: process function call and array indexing
+    sym_t funcName;
+    if (p->child_num == 3 && p->childs[0]->type == ID) {
+        funcName = p->childs[0]->tabid;
+        if (funcName == SYMBOL_READ) {
+            IR_READ(place);
+        } else {
+            IR_CALL(place, funcName);
+        }
+        return;
+    }
 
-    printf("Cannot translate: Code contains variables or parameters of structure or float type.");
+    operand_t argList[MAX_FUNCT_PARAMNUM];
+    int argListSize = 0;
+    astnode_t *args;
+    int i;
+    if (p->child_num == 4 && p->childs[0]->type == ID) {
+        funcName = p->childs[0]->tabid;
+        args = p->childs[2];
+        translateArgs(args, argList, &argListSize);
+        if (funcName == SYMBOL_WRITE) {
+            IR_WRITE(argList[0]);
+            IR_ASSIGN(place, getOrCreateConstant(0));
+            return;
+        }
+        for (i = argListSize - 1; i >= 0; i--) {
+            IR_ARG(argList[i]);
+        }
+        IR_CALL(place, funcName);
+        return;
+    }
+    
+    // TODO: process array indexing
+
+    printf("Cannot translate: Code contains variables or parameters of structure or float type.\n");
     exit(0);
+}
+
+static void translateArgs(astnode_t *p, operand_t argList[], int* argListSize) {
+    assert(p->type == Args);
+
+    astnode_t *exp = p->childs[0];
+    operand_t t1 = newTemp();
+    translateExp(exp, t1);
+    argList[(*argListSize)++] = t1;
+
+    if (p->child_num == 1) {
+        return;
+    }
+
+    assert(p->child_num == 3);
+    translateArgs(p->childs[2], argList, argListSize);
 }
 
 static void translateCond(astnode_t *p, label_t trueLabel, label_t falseLabel) {
     assert(p->type == Exp);
     
+    operand_t t1, t2;
+    astnode_t *exp1, *exp2, *op;
     if (p->child_num == 3 && p->childs[1]->type == RELOP) {
-
+        exp1 = p->childs[0];
+        op = p->childs[1];
+        exp2 = p->childs[2];
+        t1 = newTemp();
+        t2 = newTemp();
+        translateExp(exp1, t1);
+        translateExp(exp2, t2);
+        switch (op->tabid) {
+            case EQ: IR_BRANCH_EQ(trueLabel, t1, t2); break;
+            case NE: IR_BRANCH_NE(trueLabel, t1, t2); break;
+            case LT: IR_BRANCH_LT(trueLabel, t1, t2); break;
+            case LE: IR_BRANCH_LE(trueLabel, t1, t2); break;
+            case GT: IR_BRANCH_GT(trueLabel, t1, t2); break;
+            case GE: IR_BRANCH_GE(trueLabel, t1, t2); break;
+        }
+        IR_JUMP(falseLabel);
+        return;
     }
 
-    
+    if (p->child_num == 2 && p->childs[0]->type == NOT) {
+        translateCond(p, falseLabel, trueLabel);
+        return;
+    }
 
+    label_t label1;
+    if (p->child_num == 3 && p->childs[1]->type == AND) {
+        exp1 = p->childs[0];
+        exp2 = p->childs[2];
+        label1 = newLabel();
+        translateCond(exp1, label1, falseLabel);
+        IR_LABEL(label1);
+        translateCond(exp2, trueLabel, falseLabel);
+        return;
+    }
+
+    if (p->child_num == 3 && p->childs[1]->type == OR) {
+        exp1 = p->childs[0];
+        exp2 = p->childs[2];
+        label1 = newLabel();
+        translateCond(exp1, trueLabel, label1);
+        IR_LABEL(label1);
+        translateCond(exp2, trueLabel, falseLabel);
+        return;
+    }
+
+    t1 = newLabel();
+    translateExp(p, t1);
+    IR_BRANCH_NE(trueLabel, t1, getOrCreateConstant(0));
+    IR_JUMP(falseLabel);
 }
 
 static void translateDec(astnode_t *p) {
@@ -205,6 +302,81 @@ static void translateDefList(astnode_t *p) {
     }
 }
 
+static void translateCompSt(astnode_t *p);
+
+static void translateStmt(astnode_t *p) {
+    assert(p->type == Stmt);
+
+    astnode_t *exp;
+    if (p->child_num == 2) {
+        exp = p->childs[0];
+        translateExp(exp, newTemp());
+        return;
+    }
+
+    if (p->child_num == 1) {
+        translateCompSt(p->childs[0]);
+        return;
+    }
+
+    operand_t t1;
+    if (p->child_num == 3) {
+        exp = p->childs[1];
+        t1 = newTemp();
+        translateExp(exp, t1);
+        IR_RETURN(t1);
+        return;
+    }
+
+    astnode_t *stmt1;
+    label_t label1, label2;
+    if (p->child_num == 5 && p->childs[0]->type == IF) {
+        exp = p->childs[2];
+        stmt1 = p->childs[4];
+        label1 = newLabel();
+        label2 = newLabel();
+        translateCond(exp, label1, label2);
+        IR_LABEL(label1);
+        translateStmt(stmt1);
+        IR_LABEL(label2);
+        return;
+    }
+
+    astnode_t *stmt2;
+    label_t label3;
+    if (p->child_num == 7) {
+        exp = p->childs[2];
+        stmt1 = p->childs[4];
+        stmt2 = p->childs[6];
+        label1 = newLabel();
+        label2 = newLabel();
+        label3 = newLabel();
+        translateCond(exp, label1, label2);
+        IR_LABEL(label1);
+        translateStmt(stmt1);
+        IR_JUMP(label3);
+        IR_LABEL(label2);
+        translateStmt(stmt2);
+        IR_LABEL(label3);
+        return;
+    }
+
+    assert(p->child_num == 5 && p->childs[0]->type == WHILE);
+
+    exp = p->childs[2];
+    stmt1 = p->childs[4];
+    label1 = newLabel();
+    label2 = newLabel();
+    label3 = newLabel();
+    IR_LABEL(label1);
+    translateCond(exp, label2, label3);
+    IR_LABEL(label2);
+    translateStmt(stmt1);
+    IR_JUMP(label1);
+    IR_LABEL(label3);
+
+}
+
 static void translateCompSt(astnode_t *p) {
     assert(p->type == CompSt);
 
@@ -217,7 +389,7 @@ static void translateCompSt(astnode_t *p) {
     astnode_t* stmt;
     while (stmtList) {
         stmt = stmtList->childs[0];
-        // TODO: translate stmt
+        translateStmt(stmt);
         stmtList = stmtList->childs[1];
     }
 

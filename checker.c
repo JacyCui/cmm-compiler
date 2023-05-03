@@ -34,6 +34,7 @@ void check(astnode_t *p) {
     if (p->type == Stmt && p->childs[0]->type == RETURN) {
         if (processExpr(p->childs[1]) != functab[curFunc].ret_type) {
             printf("Error type 8 at Line %d: Type mismatched for return.\n", p->lineno);
+            errorno++;
         }
         return;
     }
@@ -166,6 +167,7 @@ static func_t processFunDec(type_t ret_type, astnode_t *p, bool is_def) {
     if (functab[fun].definded && is_def) {
         printf("Error type 4 at Line %d: Redefined function \"%s\".\n",
             id->lineno, symtab[id->tabid].symbol);
+        errorno++;
         return -1;
     }
     functab[fun].definded = functab[fun].definded || is_def;
@@ -173,7 +175,8 @@ static func_t processFunDec(type_t ret_type, astnode_t *p, bool is_def) {
         // 错误类型19:函数的多次声明互相冲突(即函数名一致，但返回类型、形参数量
         // 或者形参类型不一致)，或者声明与定义之间互相冲突。
         printf("Error type 19 at Line %d: Inconsistent declaration of function \"%s\".\n",
-            id->lineno, symtab[id->tabid].symbol);    
+            id->lineno, symtab[id->tabid].symbol);
+        errorno++;
         return -1;
     }
     return fun;
@@ -206,6 +209,7 @@ static type_t processSpecifier(astnode_t *p) {
             // 错误类型16:结构体的名字与前面定义过的结构体或变量的名字重复。
             printf("Error type 16 at Line %d: Duplicated name \"%s\".\n", 
                 tag->lineno, symtab[struct_sym].symbol);
+            errorno++;
             return -1;
         }
         type = typetab + new_type;
@@ -224,6 +228,7 @@ static type_t processSpecifier(astnode_t *p) {
         // 错误类型17: 使用未定义过的结构体
         printf("Error type 17 at Line %d: Undefined structure \"%s\".\n",
             tag->lineno, symtab[struct_sym].symbol);
+        errorno++;
     }
     return new_type;
 }
@@ -267,10 +272,12 @@ static sym_t processArrayDec(type_t type, astnode_t *p, typetable_t *structure, 
             // 错误类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复。
             printf("Error type 3 at Line %d: Redefined variable \"%s\".\n", 
                 id->lineno, symtab[id->tabid].symbol);
+            errorno++;
         } else {
             // 错误类型15: 结构体中域名重复定义
             printf("Error type 15 at Line %d: Redefined field \"%s\".\n",
                 id->lineno, symtab[id->tabid].symbol);
+            errorno++;
         }
         return -1;
     }
@@ -296,10 +303,12 @@ static void processVarDec(type_t type, astnode_t *id, typetable_t *structure, fu
             // 错误类型3: 变量出现重复定义，或变量与前面定义过的结构体名字重复。
             printf("Error type 3 at Line %d: Redefined variable \"%s\".\n", 
                 id->lineno, symtab[id->tabid].symbol);
+            errorno++;
         } else {
             // 错误类型15: 结构体中域名重复定义
             printf("Error type 15 at Line %d: Redefined field \"%s\".\n",
                 id->lineno, symtab[id->tabid].symbol);
+            errorno++;
         }
     } else {
         if (structure != NULL) {
@@ -324,6 +333,7 @@ static void processDec(type_t type, astnode_t *p, typetable_t *structure) {
                 // 错误类型15: 在定义时对域进行初始化
                 printf("Error type 15 at Line %d: Initialize field \"%s\".\n",
                     p->childs[1]->lineno, symtab[id->tabid].symbol);
+                errorno++;
             } else {
                 assert(p->childs[2]->type == Exp);
                 init_type = processExpr(p->childs[2]);
@@ -331,6 +341,7 @@ static void processDec(type_t type, astnode_t *p, typetable_t *structure) {
                     // 错误类型5: 赋值号两边的表达式类型不匹配
                     printf("Error type 5 at Line %d: Type mismatched for assignment.\n",
                         p->childs[1]->lineno);
+                    errorno++;
                 }
             }
         }
@@ -343,11 +354,13 @@ static void processDec(type_t type, astnode_t *p, typetable_t *structure) {
                 // 错误类型15: 在定义时对域进行初始化
                 printf("Error type 15 at Line %d: Initialize field \"%s\".\n",
                     p->childs[1]->lineno, symtab[ary_sym].symbol);
+                errorno++;
             }
         } else {
             // 错误类型5: 赋值号两边的表达式类型不匹配
             printf("Error type 5 at Line %d: Type mismatched for assignment.\n",
                 p->childs[1]->lineno);
+            errorno++;
         }
     }
 }
@@ -359,6 +372,7 @@ static type_t processArray(astnode_t *p, int dim) {
         index = processExpr(p->childs[2]);
         if (typetab[index].kind != BASIC || typetab[index].basic != INT_TYPE) {
             printf("Error type 12 at Line %d: index is not an integer.\n", p->childs[2]->lineno);
+            errorno++;
         }
         return processArray(p->childs[0], dim + 1);
     }
@@ -368,6 +382,7 @@ static type_t processArray(astnode_t *p, int dim) {
         return typetab[type].array.base_type;
     }
     printf("Error type 10 at Line %d: This is not a proper array.\n", p->lineno);
+    errorno++;
     return -1;
 }
 
@@ -375,7 +390,8 @@ static type_t checkFuncArgs(astnode_t *p, functable_t *function) {
     if (p->type == RP) {
         if (function->param_num != 0) {
             printf("Error type 9 at Line %d: Function \"%s\" has wrong arguments.\n",
-                p->lineno, symtab[function->sym].symbol);   
+                p->lineno, symtab[function->sym].symbol);
+            errorno++;
         }
         return function->ret_type;
     }
@@ -388,7 +404,8 @@ static type_t checkFuncArgs(astnode_t *p, functable_t *function) {
         arg_type = processExpr(p->childs[0]);
         if (arg_type != -1 && !checkTypeEqual(typetab + param_type, typetab + arg_type)) {
             printf("Error type 9 at Line %d: Function \"%s\" has wrong arguments.\n",
-                p->lineno, symtab[function->sym].symbol);   
+                p->lineno, symtab[function->sym].symbol);
+            errorno++;  
             return function->ret_type;
         }
         if (p->child_num == 1) {
@@ -398,7 +415,8 @@ static type_t checkFuncArgs(astnode_t *p, functable_t *function) {
     }
     if (p->child_num != 1 || i != function->param_num - 1) {
         printf("Error type 9 at Line %d: Function \"%s\" has wrong arguments.\n",
-                p->lineno, symtab[function->sym].symbol);  
+                p->lineno, symtab[function->sym].symbol);
+        errorno++;
     }
     return function->ret_type;
 }
@@ -417,6 +435,7 @@ static type_t processExpr(astnode_t *p) {
                 if (name == -1) {
                     printf("Error type 1 at Line %d: Undefined variable \"%s\".\n",
                         atom->lineno, symtab[atom->tabid].symbol);
+                    errorno++;
                     return -1;
                 }
                 return nametab[name].type;
@@ -432,6 +451,7 @@ static type_t processExpr(astnode_t *p) {
             return type;
         } else {
             printf("Error type 7 at Line %d: Type mismatched for operands.\n", atom->lineno);
+            errorno++;
             return -1;
         }
     }
@@ -441,6 +461,7 @@ static type_t processExpr(astnode_t *p) {
             return type;
         } else {
             printf("Error type 7 at Line %d: Type mismatched for operands.\n", atom->lineno);
+            errorno++;
             return getIntType();
         }
     }
@@ -449,12 +470,14 @@ static type_t processExpr(astnode_t *p) {
         if (getVarName(atom->tabid) != -1 || getFieldName(atom->tabid) != -1) {
             printf("Error type 11 at Line %d: \"%s\" is not a function.\n", 
                 atom->lineno, symtab[atom->tabid].symbol);
+            errorno++;
             return -1;
         }
         fun = getFunctionByName(atom->tabid);
         if (fun == -1) {
             printf("Error type 2 at Line %d: Undefined function \"%s\".\n",
                 atom->lineno, symtab[atom->tabid].symbol);
+            errorno++;
             return -1;
         }
         return checkFuncArgs(p->childs[2], functab + fun);
@@ -465,12 +488,14 @@ static type_t processExpr(astnode_t *p) {
         type = processExpr(atom);
         if (typetab[type].kind != STRUCTURE) {
             printf("Error type 13 at Line %d: Illegal use of \".\".\n", p->childs[1]->lineno);
+            errorno++;
             return -1;
         }
         field = getFieldName(p->childs[2]->tabid);
         if (field == -1) {
             printf("Error type 14 at Line %d: Non-existent field \"%s\".\n",
                 p->childs[2]->lineno, symtab[p->childs[2]->tabid].symbol);
+            errorno++;
             return -1;
         }
         for (i = 0; i < typetab[type].structure.fieldnum; i++) {
@@ -480,6 +505,7 @@ static type_t processExpr(astnode_t *p) {
         }
         printf("Error type 14 at Line %d: Non-existent field \"%s\".\n",
                 p->childs[2]->lineno, symtab[p->childs[2]->tabid].symbol);
+        errorno++;
         return -1;
     }
     if (p->childs[1]->type == LB) {
@@ -497,20 +523,24 @@ static type_t processExpr(astnode_t *p) {
                 return type1 != -1 ? type1 : type2;
             }
             printf("Error type 5 at Line %d: Type mismatched for assignment.\n", op->lineno);
+            errorno++;
             return -1;
         }
         printf("Error type 6 at Line %d: The left-hand side of an assignment must be a variable.\n",
             op->lineno);
+        errorno++;
         return -1;
     }
     if (type1 != -1 && type2 != -1 && type1 != type2) {
         printf("Error type 7 at Line %d: Type mismatched for operands.\n", op->lineno);
+        errorno++;
         return -1;
     }
     if (op->type == RELOP) {
         if ((type1 != -1 && typetab[type1].kind != BASIC) 
             || (type2 != -1 && typetab[type2].kind != BASIC)) {
             printf("Error type 7 at Line %d: Type mismatched for operands.\n", op->lineno);
+            errorno++;
             return -1;
         }
         return getIntType();
@@ -519,6 +549,7 @@ static type_t processExpr(astnode_t *p) {
         if ((type1 != -1 && type1 != getIntType()) 
             || (type2 != -1 && type2 != getIntType())) {
             printf("Error type 7 at Line %d: Type mismatched for operands.\n", op->lineno);
+            errorno++;
             return -1;
         }
         return type1 != -1 ? type1 : type2;

@@ -4,6 +4,8 @@
 #include "ast.h"
 #include "checker.h"
 #include "semantic.h"
+#include "irgen.h"
+#include "ir.h"
 
 void yyrestart (FILE *input_file);
 astnode_t *yyparse ();
@@ -22,18 +24,27 @@ int main(int argc, char **argv) {
     yylineno = 1;
     yyrestart(f);
     yyparse();
+    fclose(f);
     
-    if (errorno == 0) {
-        // print_ast(root, 0);
-        check(root);
-        checkFunctionTable();
+    if (errorno != 0) {
+        return 1;
     }
-    
-    // if (argc <= 2) {
-    //     return 1;
-    // }
 
-    //f = fopen(argv[2], "w");
+    // print_ast(root, 0);
+    check(root);
+    checkFunctionTable();
+
+    if (errorno != 0) {
+        return 1;
+    }
+
+    genIR(root);
+
+    dumpIR(stdout);
+    
+    // if (argc >= 2) {
+    //     f = fopen(argv[2], "w");
+    // }
 
     freeSymtab();
     free_ast(root);
