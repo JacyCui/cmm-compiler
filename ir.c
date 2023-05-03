@@ -10,6 +10,7 @@ label_t newLabel() {
 }
 
 int tempNo = 0;
+int varNo = 0;
 operandtable_t operandtab[MAX_TABLE_LEN * 2];
 
 operand_t operandtab_size = 0;
@@ -23,6 +24,7 @@ operand_t getOrCreateVarByName(name_t name) {
     }
     operandtab[operandtab_size].kind = DECL_VAR;
     operandtab[operandtab_size].name = name;
+    operandtab[operandtab_size].varNo = varNo++;
     return operandtab_size++;
 }
 
@@ -48,7 +50,8 @@ static void dumpOperand(FILE* fd, operand_t i) {
     assert(fd);
     operandtable_t *operand = operandtab + i;
     switch (operand->kind) {
-        case DECL_VAR: fprintf(fd, "%s", symtab[nametab[operand->name].sym].symbol); break;
+        // fprintf(fd, "%s", symtab[nametab[operand->name].sym].symbol);
+        case DECL_VAR: fprintf(fd, "v%d", operand->varNo); break;
         case CONSTANT: fprintf(fd, "#%d", operand->value); break;
         case TEMP_VAR: fprintf(fd, "t%d", operand->tempNo); break;
     }

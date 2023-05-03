@@ -277,7 +277,7 @@ static void translateCond(astnode_t *p, label_t trueLabel, label_t falseLabel) {
     }
 
     if (p->child_num == 2 && p->childs[0]->type == NOT) {
-        translateCond(p, falseLabel, trueLabel);
+        translateCond(p->childs[1], falseLabel, trueLabel);
         return;
     }
 
@@ -302,7 +302,7 @@ static void translateCond(astnode_t *p, label_t trueLabel, label_t falseLabel) {
         return;
     }
 
-    t1 = newLabel();
+    t1 = newTemp();
     translateExp(p, t1);
     IR_BRANCH_NE(trueLabel, t1, getOrCreateConstant(0));
     IR_JUMP(falseLabel);

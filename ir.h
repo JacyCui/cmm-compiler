@@ -14,7 +14,10 @@ typedef int ir_t;
 typedef struct operandtable_t {
     enum { DECL_VAR, CONSTANT, TEMP_VAR } kind;
     union {
-        name_t name; // for DECL_VAR
+        struct {
+            int varNo;
+            name_t name;
+        }; // for DECL_VAR
         int value; // for CONSTANT
         int tempNo; // for TEMP_VAR
     };
