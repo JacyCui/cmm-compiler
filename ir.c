@@ -231,8 +231,6 @@ ir_t IR_RETURN(operand_t ret) {
     return irtab_size++;
 }
 
-static void dumpOneIR(FILE* fd, ir_t i);
-
 void dumpIR(FILE* fd) {
     assert(fd);
     ir_t i;
@@ -241,7 +239,7 @@ void dumpIR(FILE* fd) {
     }
 }
 
-static void dumpOneIR(FILE *fd, ir_t i) {
+void dumpOneIR(FILE *fd, ir_t i) {
     irtable_t *ir = irtab + i;
     switch (ir->kind) {
         case LABEL: fprintf(fd, "LABEL label%d :\n", ir->label); break;

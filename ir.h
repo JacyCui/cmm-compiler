@@ -25,6 +25,8 @@ typedef struct operandtable_t {
 
 extern operandtable_t operandtab[];
 
+extern operand_t operandtab_size;
+
 operand_t getOrCreateVarByName(name_t name);
 operand_t newTemp();
 operand_t getOrCreateConstant(int value);
@@ -86,6 +88,8 @@ typedef struct irtable_t {
 
 extern irtable_t irtab[];
 
+extern ir_t irtab_size;
+
 ir_t IR_FUNCTION(sym_t funcName);
 ir_t IR_PARAM(operand_t param);
 ir_t IR_LABEL(label_t label);
@@ -111,6 +115,7 @@ ir_t IR_WRITE(operand_t arg);
 ir_t IR_CALL(operand_t ret, sym_t funcName);
 ir_t IR_RETURN(operand_t ret);
 
+void dumpOneIR(FILE *fd, ir_t i);
 void dumpIR(FILE *fd);
 
 #endif

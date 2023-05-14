@@ -6,6 +6,7 @@
 #include "semantic.h"
 #include "irgen.h"
 #include "ir.h"
+#include "codegen.h"
 
 void yyrestart (FILE *input_file);
 astnode_t *yyparse ();
@@ -14,6 +15,7 @@ extern int yylineno;
 
 int main(int argc, char **argv) {
     if (argc <= 1) {
+        printf("Usage: %s input.cmm output.s\n", argv[0]);
         return 1;
     }
     FILE *f = fopen(argv[1], "r");
@@ -50,7 +52,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    dumpIR(f);
+    //dumpIR(f);
+
+    translateIRToCode(f);
 
     fclose(f);
     freeSymtab();

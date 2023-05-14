@@ -63,4 +63,8 @@ extern typetable_t typetab[];
 extern nametable_t nametab[];
 extern functable_t functab[];
 
+extern type_t typetab_size;
+extern name_t name_table_size;
+extern func_t func_table_size;
+
 #endif
