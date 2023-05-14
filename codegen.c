@@ -139,9 +139,13 @@ void translateIRToCode(FILE *fd) {
     sw $t0, %d($fp) # ", offsetToFP[ir->src], offsetToFP[ir->dest]);
                 break;
             case LOAD:
-                fprintf(fd, "    lw $t0, %d($fp)\n\
-    lw $t0, 0($t0)\n\
-    sw $t0, %d($fp) # ", offsetToFP[ir->src], offsetToFP[ir->dest]);
+                if (operandtab[ir->src].kind == CONSTANT) {
+                    fprintf(fd, "    li $t0, %d\n", operandtab[ir->src].value);
+                } else {
+                    fprintf(fd, "    lw $t0, %d($fp)\n", offsetToFP[ir->src]);
+                }
+                fprintf(fd, "    lw $t0, 0($t0)\n\
+    sw $t0, %d($fp) # ", offsetToFP[ir->dest]);
                 break;
             case STORE:
                 fprintf(fd, "    lw $t0, %d($fp)\n\
@@ -298,9 +302,11 @@ static void calculateFrameSizeAndOffsetToFP() {
                 currentPositiveOffsetToFP += 4;
                 break;
             case DEC:
-                allocateLocalOprSpace(ir->array, &currentFrameSize, &currentNegativeOffsetToFP);
-                currentNegativeOffsetToFP -= ir->size - 4;
-                currentFrameSize += ir->size - 4;
+                if(offsetToFP[ir->array] == -1 && operandtab[ir->array].kind != CONSTANT) {
+                    currentNegativeOffsetToFP -= ir->size;
+                    currentFrameSize += ir->size;
+                    offsetToFP[ir->array] = currentNegativeOffsetToFP + 4;
+                }
                 break;
             case ASSIGN:
             case GET_ADDR:
@@ -340,22 +346,6 @@ static void calculateFrameSizeAndOffsetToFP() {
     }
     frameSize[currentFunctionName] = currentFrameSize;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const char* asmHeader = ".data\n\
 _prompt: .asciiz \"Enter an integer:\"\n\
