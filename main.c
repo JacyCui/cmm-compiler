@@ -32,8 +32,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    //dumpIR(f);
+    dumpIR(f);
 
     fclose(f);
+    freeSymtab();
     return 0;
 }
