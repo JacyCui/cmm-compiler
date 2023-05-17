@@ -113,6 +113,16 @@ stmtable_t stmtab[MAX_TABLE_LEN];
 
 int stmtabSize = 0;
 
+stmt_t getLabelStmtByName(sym_t labelName) {
+    stmt_t i;
+    for (i = 0; i < stmtabSize; i++) {
+        if (stmtab[i].kind == LABEL && stmtab[i].labelName == labelName) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 stmt_t addDEC(operand_t array) {
     stmtab[stmtabSize].kind = DEC;
     stmtab[stmtabSize].array = array;
@@ -194,9 +204,9 @@ stmt_t addRETURN(ref_t ret) {
     return stmtabSize++;
 }
 
-stmt_t addREAD(ref_t arg) {
+stmt_t addREAD(ref_t res) {
     stmtab[stmtabSize].kind = READ;
-    stmtab[stmtabSize].arg = arg;
+    stmtab[stmtabSize].res = res;
     return stmtabSize++;
 }
 
@@ -216,7 +226,7 @@ func_t createEmptyFunction(sym_t funcName) {
     return functabSize++;
 }
 
-static void dumpOpr(FILE* fd, operand_t o) {
+void dumpOpr(FILE* fd, operand_t o) {
     switch (oprtab[o].kind) {
         case CONSTANT: fprintf(fd, "#%d", oprtab[o].value); break;
         case VAR: fprintf(fd, "%s", symtab[oprtab[o].varName]); break;
@@ -224,7 +234,7 @@ static void dumpOpr(FILE* fd, operand_t o) {
     }
 }
 
-static void dumpRef(FILE* fd, ref_t r) {
+void dumpRef(FILE* fd, ref_t r) {
     switch (reftab[r].kind) {
         case ADDRESS: fprintf(fd, "&"); break;
         case DEREFERENCE: fprintf(fd, "*"); break;
@@ -233,7 +243,7 @@ static void dumpRef(FILE* fd, ref_t r) {
     dumpOpr(fd, reftab[r].opr);
 }
 
-static void dumpStmt(FILE *fd, stmt_t k) {
+void dumpStmt(FILE *fd, stmt_t k) {
     ref_t i;
     switch (stmtab[k].kind) {
         case DEC:
@@ -315,7 +325,7 @@ static void dumpStmt(FILE *fd, stmt_t k) {
             break;
         case READ:
             fprintf(fd, "READ ");
-            dumpRef(fd, stmtab[k].arg);
+            dumpRef(fd, stmtab[k].res);
             fprintf(fd, "\n");
             break;
         case WRITE:
@@ -323,10 +333,11 @@ static void dumpStmt(FILE *fd, stmt_t k) {
             dumpRef(fd, stmtab[k].arg);
             fprintf(fd, "\n");
             break;
+        case NOP: break;
     }
 }
 
-static void dumpFunctionIR(FILE *fd, func_t i) {
+void dumpFunctionIR(FILE *fd, func_t i) {
     operand_t j;
     stmt_t k;
     fprintf(fd, "FUNCTION %s :\n", symtab[functab[i].funcName]);
