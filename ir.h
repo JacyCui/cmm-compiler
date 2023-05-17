@@ -304,10 +304,10 @@ stmt_t addRETURN(ref_t ret);
 /**
  * @brief construct a READ statement
  * e.g. READ x
- * @param arg reading argument
+ * @param res reading argument
  * @return the index of the statement
  */
-stmt_t addREAD(ref_t arg);
+stmt_t addREAD(ref_t res);
 
 /**
  * @brief construct a WRITE statement
